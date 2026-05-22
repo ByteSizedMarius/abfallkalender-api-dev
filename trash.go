@@ -7,14 +7,15 @@ import (
 	"strconv"
 )
 
-// GetNextEmptyings returns the next pickup date for each waste type at the
-// given address.
-func GetNextEmptyings(street string, hn HouseNumber) ([]TrashDate, error) {
+// GetNextEmptyings returns the next pickup per waste type at the given
+// address. The endpoint's JSON shape differs from GetCalendar's - results
+// come back as NextTrashDate, not TrashDate.
+func GetNextEmptyings(street string, hn HouseNumber) ([]NextTrashDate, error) {
 	resp, err := httpGet(emptyingsURL(getNextEmptyings, street, hn))
 	if err != nil {
 		return nil, err
 	}
-	return emptyingsFromBody(resp.Body)
+	return decodeArray[NextTrashDate](resp.Body)
 }
 
 // GetCalendar returns every waste pickup for the current year at the given
@@ -24,7 +25,7 @@ func GetCalendar(street string, hn HouseNumber) ([]TrashDate, error) {
 	if err != nil {
 		return nil, err
 	}
-	return emptyingsFromBody(resp.Body)
+	return decodeArray[TrashDate](resp.Body)
 }
 
 // emptyingsURL builds an emptyings endpoint URL with URL-encoded query
@@ -45,11 +46,14 @@ func emptyingsURL(endpoint, street string, hn HouseNumber) string {
 	return svcURL() + endpoint + q.Encode()
 }
 
-func emptyingsFromBody(body io.ReadCloser) ([]TrashDate, error) {
+// decodeArray reads a JSON array from body into a slice of T, closing the
+// body when done. Used by both emptyings endpoints, which return different
+// element types.
+func decodeArray[T any](body io.ReadCloser) ([]T, error) {
 	defer body.Close()
-	var trashDates []TrashDate
-	if err := json.NewDecoder(body).Decode(&trashDates); err != nil {
+	var result []T
+	if err := json.NewDecoder(body).Decode(&result); err != nil {
 		return nil, err
 	}
-	return trashDates, nil
+	return result, nil
 }

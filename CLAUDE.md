@@ -8,7 +8,7 @@ Go library and CLI for the insert-it.de waste-collection API
 ```
 const.go            Region selection, endpoint constants, svcURL/imgURL functions
 http.go             Shared http.Client with timeout + httpGet helper (status check)
-models.go           TrashDate, HouseNumber (custom UnmarshalJSON for date parsing)
+models.go           TrashDate, NextTrashDate, HouseNumber (custom UnmarshalJSON for date parsing)
 search.go           GetStreets, GetStreetFilter, GetHouseNumbers
 trash.go            GetCalendar, GetNextEmptyings, emptyingsURL helper
 service_points.go   GetServicePointTypes, GetServicePoints
@@ -61,6 +61,16 @@ that produce malformed requests if interpolated raw.
 `String()` methods format dates as DD.MM.YYYY (`02.01.2006`), matching German
 conventions. JSON output uses `time.Time`'s default RFC3339 marshaller for
 machine-readability.
+
+### Two TrashDate-like types
+The calendar (`GetCalendar`) and next-emptyings (`GetNextEmptyings`) endpoints
+return different JSON shapes, so they decode into two distinct types:
+- `TrashDate` (calendar): `BmsWasteTypeName`, `Deadline`, `Size`/`SizeName`,
+  `Cycle`/`CycleAsText`, ...
+- `NextTrashDate` (next): `Name`, `ExecutionDate`, `BinSize`.
+
+Conflating them silently produces all-zero output because Go's case-insensitive
+JSON match finds no overlap.
 
 ### Mixed receivers on TrashDate
 `UnmarshalJSON` has a pointer receiver because it mutates; `String()` has a

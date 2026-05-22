@@ -4,10 +4,6 @@ Go library and CLI for the insert-it.de Abfallkalender API used by several
 German municipalities to publish their waste-pickup schedules: **Mannheim,
 Hattingen, Herne, Kassel, Krefeld, Lübeck, Offenbach**. Zero dependencies.
 
-The [`Regions` map](https://github.com/ByteSizedMarius/abfallkalender-api-dev/blob/master/const.go#L18)
-keys match these names verbatim, except Lübeck uses the ASCII spelling
-`Luebeck`.
-
 ## cli
 
 Prints a human-readable list by default, or machine-readable JSON with
@@ -91,7 +87,7 @@ See [`example/main.go`](https://github.com/ByteSizedMarius/abfallkalender-api-de
 - `GetStreetFilter(prefix string) ([]string, error)` - case-insensitive prefix filter
 - `GetHouseNumbers(street string) ([]HouseNumber, error)` - house-number ranges
 - `GetCalendar(street string, hn HouseNumber) ([]TrashDate, error)` - full year of pickups
-- `GetNextEmptyings(street string, hn HouseNumber) ([]TrashDate, error)` - next pickup per waste type
+- `GetNextEmptyings(street string, hn HouseNumber) ([]NextTrashDate, error)` - next pickup per waste type (different JSON shape than calendar)
 - `GetServicePointTypes() ([]PointObjectType, error)` - container / Recyclinghof categories
 - `GetServicePoints() ([]PointObject, error)` - all service points with coordinates
 
@@ -100,6 +96,10 @@ Switch municipality at any time by reassigning `Region`:
 ```go
 abfallkalender.Region = abfallkalender.Regions["Mannheim"]
 ```
+
+The [`Regions`](https://github.com/ByteSizedMarius/abfallkalender-api-dev/blob/master/const.go#L18)
+map keys match the city names verbatim, except Lübeck uses the ASCII spelling
+`Luebeck`.
 
 ## known issues
 
@@ -113,7 +113,7 @@ abfallkalender.Region = abfallkalender.Regions["Mannheim"]
 
 ## disclaimer
 
-This project is not affiliated with insert-it GmbH or any of the listed
-municipalities. It is an unofficial client built from publicly observable
+This project is not affiliated with [insert Infotech GmbH](https://insert-infotech.de/)
+or any of the listed municipalities. It is an unofficial client built from publicly observable
 network traffic against undocumented endpoints, which may change without
 notice.
