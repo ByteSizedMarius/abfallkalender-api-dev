@@ -272,10 +272,10 @@ Global flags:
   -json        emit JSON instead of text (for calling from other languages)
 
 Commands:
-  streets        list streets; -filter PREFIX filters by name prefix
-  housenumbers   house-number ranges for a street; needs -street
-  calendar       full pickup calendar for an address; needs -street -number; -size filters by bin liters
-  next           next pickup per waste type; needs -street -number; -size filters by bin liters
+  streets        list streets; "-filter PREFIX" filters by name prefix
+  housenumbers   house-number ranges for a street; needs "-street"
+  calendar       full pickup calendar for an address; needs "-street -number"; "-size" filters by bin liters
+  next           next pickup per waste type; needs "-street -number"; "-size" filters by bin liters
   pointtypes     service-point categories
   points         all service points (glass containers, recycling, ...)
 
