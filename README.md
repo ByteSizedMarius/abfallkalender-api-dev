@@ -1,11 +1,11 @@
-# abfallkalender-api: German Müllabfuhr / Abfallkalender API client
+# abfallkalender-api
 
 Go library and CLI for the insert-it.de waste-collection API
 (Müllkalender / Abfallkalender / Müllabfuhr) used by several German
 municipalities to publish their pickup schedules: **Mannheim, Hattingen,
 Herne, Kassel, Krefeld, Lübeck, Offenbach**. Zero dependencies.
 
-> [!CAUTION]
+> [!NOTE]
 > The upstream insert-it.de API routinely breaks around the year change,
 > roughly the last week of December through the first week of January.
 > Every consumer is affected, including the official municipal apps; it is
@@ -14,20 +14,54 @@ Herne, Kassel, Krefeld, Lübeck, Offenbach**. Zero dependencies.
 
 ## supported municipalities
 
-The API is offered by insert-it GmbH for seven municipalities, each served by
-its own `BmsAbfallkalender*` endpoint:
+The seven municipalities are exposed via the `Regions` map; keys match the
+city name verbatim, with one exception: Lübeck uses the ASCII spelling
+`Luebeck` as its key.
 
-| Region key (code) | Municipality                    |
-| ----------------- | ------------------------------- |
-| `Hattingen`       | Hattingen                       |
-| `Herne`           | Herne                           |
-| `Kassel`          | Kassel                          |
-| `Krefeld`         | Krefeld                         |
-| `Luebeck`         | Lübeck (ASCII spelling in code) |
-| `Mannheim`        | Mannheim                        |
-| `Offenbach`       | Offenbach                       |
+## cli
 
-## library
+Prints a human-readable list by default, or machine-readable JSON with
+`-json` (handy for calling from other languages by shelling out).
+
+**Install:**
+
+- [Download](https://github.com/ByteSizedMarius/abfallkalender-api/releases/latest) a release
+- Or install via Go: `go install github.com/ByteSizedMarius/abfallkalender-api/cmd@latest`
+- Or clone and build: `go build -o abfallkalender ./cmd`
+
+Verify: `abfallkalender --help`
+
+```
+Usage: abfallkalender [-city NAME] [-json] <command> [flags]
+
+Commands:
+  streets        list streets; -filter PREFIX filters by name prefix
+  housenumbers   house-number ranges for a street; needs -street
+  calendar       full pickup calendar for an address; needs -street -number
+  next           next pickup per waste type; needs -street -number
+  pointtypes     service-point categories
+  points         all service points (glass containers, recycling, ...)
+```
+
+```
+$ abfallkalender -city Kassel streets -filter Wilhelms
+Wilhelmshöher Allee
+Wilhelmshöher Weg
+Wilhelmsstraße
+Wilhelmsthaler Straße
+
+$ abfallkalender -city Kassel calendar -street "Wilhelmshöher Allee" -number 1
+BmsWasteTypeId: 1, BmsWasteTypeName: Altpapier, Deadline: 21.05.2026, ...
+BmsWasteTypeId: 3, BmsWasteTypeName: Bioabfall, Deadline: 30.05.2026, ...
+
+$ abfallkalender -city Kassel -json pointtypes
+[
+  { "ID": 1, "AppDisplayName": "Recyclinghof" },
+  { "ID": 2, "AppDisplayName": "Altglas" }
+]
+```
+
+## api
 
 ```
 go get github.com/ByteSizedMarius/abfallkalender-api
@@ -75,46 +109,6 @@ Switch municipality at any time by reassigning `Region`:
 
 ```go
 abfallkalender.Region = abfallkalender.Regions["Mannheim"]
-```
-
-## cli
-
-For calling from other languages, scripts or just the shell, the CLI prints a
-human-readable list by default or machine-readable JSON with `-json`.
-
-```
-go build -o abfallkalender ./cmd
-./abfallkalender -h
-```
-
-```
-Usage: abfallkalender [-city NAME] [-json] <command> [flags]
-
-Commands:
-  streets        list streets; -filter PREFIX filters by name prefix
-  housenumbers   house-number ranges for a street; needs -street
-  calendar       full pickup calendar for an address; needs -street -number
-  next           next pickup per waste type; needs -street -number
-  pointtypes     service-point categories
-  points         all service points (glass containers, recycling, ...)
-```
-
-```
-$ abfallkalender -city Kassel streets -filter Wilhelms
-Wilhelmshöher Allee
-Wilhelmshöher Weg
-Wilhelmsstraße
-Wilhelmsthaler Straße
-
-$ abfallkalender -city Kassel calendar -street "Wilhelmshöher Allee" -number 1
-BmsWasteTypeId: 1, BmsWasteTypeName: Altpapier, Deadline: 21.05.2026, ...
-BmsWasteTypeId: 3, BmsWasteTypeName: Bioabfall, Deadline: 30.05.2026, ...
-
-$ abfallkalender -city Kassel -json pointtypes
-[
-  { "ID": 1, "AppDisplayName": "Recyclinghof" },
-  { "ID": 2, "AppDisplayName": "Altglas" }
-]
 ```
 
 ## known issues

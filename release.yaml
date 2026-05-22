@@ -1,0 +1,12 @@
+target: ../../6-public/abfallkalender-api
+
+include:
+  - "*.go"
+  - "go.mod"
+  - "README.md"
+  - "cmd/**"
+  - "example/**"
+
+unmanaged:
+  - LICENSE
+  - .gitignore
