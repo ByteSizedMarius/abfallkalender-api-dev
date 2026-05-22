@@ -1,39 +1,55 @@
-package insert_it
+package abfallkalender
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
-	"net/http"
+	"net/url"
+	"strconv"
 )
 
-// GetNextEmptyings returned das jeweils nächste Datum für alle Müll-Typen
+// GetNextEmptyings returns the next pickup date for each waste type at the
+// given address.
 func GetNextEmptyings(street string, hn HouseNumber) ([]TrashDate, error) {
-	resp, err := http.Get(svcUrl + getNextEmptyings + fmt.Sprintf(searchParams, street, hn.HouseNumberStart, hn.HouseNumberStartExtra, hn.HouseNumberEnd, hn.HouseNumberEndExtra))
+	resp, err := httpGet(emptyingsURL(getNextEmptyings, street, hn))
 	if err != nil {
 		return nil, err
 	}
-
 	return emptyingsFromBody(resp.Body)
 }
 
-// GetCalendar returned alle Müll-Termine für das Jahr
+// GetCalendar returns every waste pickup for the current year at the given
+// address.
 func GetCalendar(street string, hn HouseNumber) ([]TrashDate, error) {
-	resp, err := http.Get(svcUrl + getEmptyings + fmt.Sprintf(searchParams, street, hn.HouseNumberStart, hn.HouseNumberStartExtra, hn.HouseNumberEnd, hn.HouseNumberEndExtra))
+	resp, err := httpGet(emptyingsURL(getEmptyings, street, hn))
 	if err != nil {
 		return nil, err
 	}
-
 	return emptyingsFromBody(resp.Body)
+}
+
+// emptyingsURL builds an emptyings endpoint URL with URL-encoded query
+// parameters. HouseNumberEnd is sent empty (not "0") for single addresses,
+// because the API treats 0 as a literal range bound and returns nothing.
+func emptyingsURL(endpoint, street string, hn HouseNumber) string {
+	endStr := ""
+	if hn.HouseNumberEnd != 0 {
+		endStr = strconv.Itoa(hn.HouseNumberEnd)
+	}
+	q := url.Values{
+		"streetName":            {street},
+		"houseNumberStart":      {strconv.Itoa(hn.HouseNumberStart)},
+		"houseNumberStartExtra": {hn.HouseNumberStartExtra},
+		"houseNumberEnd":        {endStr},
+		"houseNumberEndExtra":   {hn.HouseNumberEndExtra},
+	}
+	return svcURL() + endpoint + q.Encode()
 }
 
 func emptyingsFromBody(body io.ReadCloser) ([]TrashDate, error) {
 	defer body.Close()
 	var trashDates []TrashDate
-	dec := json.NewDecoder(body)
-	if err := dec.Decode(&trashDates); err != nil {
+	if err := json.NewDecoder(body).Decode(&trashDates); err != nil {
 		return nil, err
 	}
-
 	return trashDates, nil
 }

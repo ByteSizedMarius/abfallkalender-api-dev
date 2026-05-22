@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__gopls__go_workspace",
+      "mcp__gopls__go_vulncheck"
+    ]
+  }
+}

@@ -1,3 +1,3 @@
-module github.com/ByteSizedMarius/insert_it
+module github.com/ByteSizedMarius/abfallkalender-api
 
-go 1.22.0
+go 1.22

@@ -1,15 +1,22 @@
-package insert_it
+package abfallkalender
 
 import (
 	"encoding/json"
-	"net/http"
+	"fmt"
 )
 
+// PointObjectType is a category of service point, e.g. "Altglascontainer".
 type PointObjectType struct {
 	ID             int
 	AppDisplayName string
 }
 
+func (pt PointObjectType) String() string {
+	return fmt.Sprintf("ID: %d, %s", pt.ID, pt.AppDisplayName)
+}
+
+// PointObject is a single service point (glass container, recycling centre,
+// etc.) with its coordinates.
 type PointObject struct {
 	ID                   int
 	Lat                  float64
@@ -18,32 +25,41 @@ type PointObject struct {
 	BmsPointObjectTypeId int
 }
 
-func GetServicePointTypes() (types []PointObjectType, err error) {
-	resp, err := http.Get(svcUrl + servicePointTypes)
-	if err != nil {
-		return nil, err
+func (p PointObject) String() string {
+	remark := ""
+	if p.Remark != nil {
+		remark = ", Remark: " + *p.Remark
 	}
-	defer resp.Body.Close()
-
-	dec := json.NewDecoder(resp.Body)
-	if err = dec.Decode(&types); err != nil {
-		return nil, err
-	}
-
-	return
+	return fmt.Sprintf("ID: %d, TypeId: %d, Lat: %g, Lon: %g%s", p.ID, p.BmsPointObjectTypeId, p.Lat, p.Lon, remark)
 }
 
-func GetServicePoints() (points []PointObject, err error) {
-	resp, err := http.Get(svcUrl + servicePoints)
+// GetServicePointTypes returns the service point categories available in the
+// current Region.
+func GetServicePointTypes() ([]PointObjectType, error) {
+	resp, err := httpGet(svcURL() + servicePointTypes)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	dec := json.NewDecoder(resp.Body)
-	if err = dec.Decode(&points); err != nil {
+	var types []PointObjectType
+	if err = json.NewDecoder(resp.Body).Decode(&types); err != nil {
 		return nil, err
 	}
+	return types, nil
+}
 
-	return
+// GetServicePoints returns all service points in the current Region.
+func GetServicePoints() ([]PointObject, error) {
+	resp, err := httpGet(svcURL() + servicePoints)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var points []PointObject
+	if err = json.NewDecoder(resp.Body).Decode(&points); err != nil {
+		return nil, err
+	}
+	return points, nil
 }

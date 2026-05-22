@@ -1,67 +1,63 @@
-package insert_it
+package abfallkalender
 
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
+	"net/url"
 	"strings"
 )
 
+// GetStreets returns the names of all streets in the currently selected Region.
 func GetStreets() ([]string, error) {
-	resp, err := http.Get(svcUrl + getAllStreets)
+	resp, err := httpGet(svcURL() + getAllStreets)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	var data []map[string]interface{}
-	dec := json.NewDecoder(resp.Body)
-	if err = dec.Decode(&data); err != nil {
+	var data []struct{ Name string }
+	if err = json.NewDecoder(resp.Body).Decode(&data); err != nil {
 		return nil, err
 	}
 
-	streets := make([]string, 0, len(data))
-	for _, item := range data {
-		if name, ok := item["Name"].(string); ok {
-			streets = append(streets, name)
-		}
+	streets := make([]string, len(data))
+	for i, item := range data {
+		streets[i] = item.Name
 	}
 
 	return streets, nil
 }
 
+// GetStreetFilter returns the streets in the current Region whose name starts
+// with prefix, matched case-insensitively.
 func GetStreetFilter(prefix string) ([]string, error) {
 	streets, err := GetStreets()
 	if err != nil {
 		return nil, err
 	}
 
-	lowercaseStreets := make([]string, len(streets))
 	prefix = strings.ToLower(prefix)
-	for i, street := range streets {
-		lowercaseStreets[i] = strings.ToLower(street)
-	}
-
 	var result []string
-	for i, street := range lowercaseStreets {
-		if strings.HasPrefix(street, prefix) {
-			result = append(result, streets[i])
+	for _, street := range streets {
+		if strings.HasPrefix(strings.ToLower(street), prefix) {
+			result = append(result, street)
 		}
 	}
 
 	return result, nil
 }
 
+// GetHouseNumbers returns the house-number ranges registered for the given
+// street in the current Region.
 func GetHouseNumbers(street string) ([]HouseNumber, error) {
-	resp, err := http.Get(fmt.Sprintf(svcUrl+getHourseNumbersForStreet, street))
+	resp, err := httpGet(fmt.Sprintf(svcURL()+getHouseNumbersForStreet, url.QueryEscape(street)))
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
 	var houseNumbers []HouseNumber
-	dec := json.NewDecoder(resp.Body)
-	if err = dec.Decode(&houseNumbers); err != nil {
+	if err = json.NewDecoder(resp.Body).Decode(&houseNumbers); err != nil {
 		return nil, err
 	}
 

@@ -1,49 +1,135 @@
-Quick & Dirty implementation of insert-it.de Müllabfuhr API.
+# abfallkalender-api: German Müllabfuhr / Abfallkalender API client
+
+Go library and CLI for the insert-it.de waste-collection API
+(Müllkalender / Abfallkalender / Müllabfuhr) used by several German
+municipalities to publish their pickup schedules: **Mannheim, Hattingen,
+Herne, Kassel, Krefeld, Lübeck, Offenbach**. Zero dependencies.
+
+> [!CAUTION]
+> The upstream insert-it.de API routinely breaks around the year change,
+> roughly the last week of December through the first week of January.
+> Every consumer is affected, including the official municipal apps; it is
+> not a bug in this library. Service resumes once the operator publishes the
+> new year's schedule.
+
+## supported municipalities
+
+The API is offered by insert-it GmbH for seven municipalities, each served by
+its own `BmsAbfallkalender*` endpoint:
+
+| Region key (code) | Municipality                    |
+| ----------------- | ------------------------------- |
+| `Hattingen`       | Hattingen                       |
+| `Herne`           | Herne                           |
+| `Kassel`          | Kassel                          |
+| `Krefeld`         | Krefeld                         |
+| `Luebeck`         | Lübeck (ASCII spelling in code) |
+| `Mannheim`        | Mannheim                        |
+| `Offenbach`       | Offenbach                       |
+
+## library
+
+```
+go get github.com/ByteSizedMarius/abfallkalender-api
+```
 
 ```go
 package main
 
 import (
 	"fmt"
-	"insert_it"
+	"log"
+
+	"github.com/ByteSizedMarius/abfallkalender-api"
 )
 
 func main() {
-	fmt.Println(insert_it.Regions) // supported regions
+	abfallkalender.Region = abfallkalender.Regions["Kassel"]
 
-	insert_it.Region = insert_it.Regions["Mannheim"]
+	streets, err := abfallkalender.GetStreetFilter("Wilhelms")
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// Returns ALL streets
-	streets, err := insert_it.GetStreets()
-
-	// Same as above, but with a local filter (startswith)
-	streets, err := insert_it.GetStreetFilter("A")
-
-	// Hausnummern for given street (data has a weird format)
-	hn, err := insert_it.GetHouseNumbers("Aachener Straße")
-
-	// The the next pickup dates (one date per waste type)
-	dates, err := insert_it.GetNextEmptyings("Aachener Straße", hn[0])
-
-	// Get the full calendar
-	calendar, err := insert_it.GetCalendar("Aachener Straße", hn[0])
-
-	// Service Points (Glascontainer usw)
-
-	// Point types
-	types, err := insert_it.GetServicePointTypes()
-	/*
-		[
-			{1 Altkleidercontainer}
-			{2 Papierkorb}
-			{3 Altglascontainer}
-			{4 Hundekottütenspender}
-			{5 Recyclinghöfe}
-		]
-	*/
-
-	// Get all points
-	points, err := insert_it.GetServicePoints()
+	houseNumbers, _ := abfallkalender.GetHouseNumbers(streets[0])
+	calendar, _ := abfallkalender.GetCalendar(streets[0], houseNumbers[0])
+	for _, pickup := range calendar {
+		fmt.Println(pickup)
+	}
 }
+```
+
+See `example/main.go` for a more complete demo that exercises every endpoint.
+
+### public API
+
+- `GetStreets() ([]string, error)` - every street in the selected region
+- `GetStreetFilter(prefix string) ([]string, error)` - case-insensitive prefix filter
+- `GetHouseNumbers(street string) ([]HouseNumber, error)` - house-number ranges
+- `GetCalendar(street string, hn HouseNumber) ([]TrashDate, error)` - full year of pickups
+- `GetNextEmptyings(street string, hn HouseNumber) ([]TrashDate, error)` - next pickup per waste type
+- `GetServicePointTypes() ([]PointObjectType, error)` - container / Recyclinghof categories
+- `GetServicePoints() ([]PointObject, error)` - all service points with coordinates
+
+Switch municipality at any time by reassigning `Region`:
+
+```go
+abfallkalender.Region = abfallkalender.Regions["Mannheim"]
+```
+
+## cli
+
+For calling from other languages, scripts or just the shell, the CLI prints a
+human-readable list by default or machine-readable JSON with `-json`.
 
 ```
+go build -o abfallkalender ./cmd
+./abfallkalender -h
+```
+
+```
+Usage: abfallkalender [-city NAME] [-json] <command> [flags]
+
+Commands:
+  streets        list streets; -filter PREFIX filters by name prefix
+  housenumbers   house-number ranges for a street; needs -street
+  calendar       full pickup calendar for an address; needs -street -number
+  next           next pickup per waste type; needs -street -number
+  pointtypes     service-point categories
+  points         all service points (glass containers, recycling, ...)
+```
+
+```
+$ abfallkalender -city Kassel streets -filter Wilhelms
+Wilhelmshöher Allee
+Wilhelmshöher Weg
+Wilhelmsstraße
+Wilhelmsthaler Straße
+
+$ abfallkalender -city Kassel calendar -street "Wilhelmshöher Allee" -number 1
+BmsWasteTypeId: 1, BmsWasteTypeName: Altpapier, Deadline: 21.05.2026, ...
+BmsWasteTypeId: 3, BmsWasteTypeName: Bioabfall, Deadline: 30.05.2026, ...
+
+$ abfallkalender -city Kassel -json pointtypes
+[
+  { "ID": 1, "AppDisplayName": "Recyclinghof" },
+  { "ID": 2, "AppDisplayName": "Altglas" }
+]
+```
+
+## known issues
+
+- **Year-end outage:** the upstream API breaks around the year change (last
+  week of December through the first week of January). Affects all consumers
+  including the official municipal apps. Service resumes once the operator
+  publishes the new year.
+- **Empty calendar for a valid-looking address:** make sure the `HouseNumber`
+  comes from `GetHouseNumbers` for the matching street. The API silently
+  returns an empty array for addresses it cannot resolve.
+
+## disclaimer
+
+This project is not affiliated with insert-it GmbH or any of the listed
+municipalities. It is an unofficial client built from publicly observable
+network traffic against undocumented endpoints, which may change without
+notice.

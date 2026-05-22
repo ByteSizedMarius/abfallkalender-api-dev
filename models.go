@@ -1,4 +1,4 @@
-package insert_it
+package abfallkalender
 
 import (
 	"encoding/json"
@@ -6,16 +6,8 @@ import (
 	"time"
 )
 
-// NextTrashDate is the struct used for GetNextEmptyings
-type NextTrashDate struct {
-	ID                 int
-	Name               string
-	AppCalendarIconUrl string
-	BinSize            int
-	ExecutionDate      time.Time
-}
-
-// TrashDate is the struct used for GetCalendar
+// TrashDate is a single waste pickup, returned by GetCalendar and
+// GetNextEmptyings.
 type TrashDate struct {
 	BmsWasteTypeId     int
 	BmsWasteTypeName   string
@@ -27,29 +19,6 @@ type TrashDate struct {
 	Cycle              int
 	EmptyingCount      int
 	CycleAsText        string
-}
-
-func (ntd *NextTrashDate) UnmarshalJSON(data []byte) error {
-	type Alias NextTrashDate
-	aux := &struct {
-		ExecutionDate      string
-		AppCalendarIconUrl string
-		*Alias
-	}{
-		Alias: (*Alias)(ntd),
-	}
-	if err := json.Unmarshal(data, &aux); err != nil {
-		return err
-	}
-
-	t, err := time.Parse("2006-01-02T15:04:05", aux.ExecutionDate)
-	if err != nil {
-		return err
-	}
-	ntd.ExecutionDate = t
-	ntd.AppCalendarIconUrl = imgUrl + aux.AppCalendarIconUrl
-
-	return nil
 }
 
 func (td *TrashDate) UnmarshalJSON(data []byte) error {
@@ -70,32 +39,35 @@ func (td *TrashDate) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	td.Deadline = t
-	td.AppCalendarIconUrl = imgUrl + aux.AppCalendarIconUrl
+	td.AppCalendarIconUrl = imgURL() + aux.AppCalendarIconUrl
 
 	return nil
 }
 
-//goland:noinspection GoMixedReceiverTypes
-func (ntd NextTrashDate) String() string {
-	return fmt.Sprintf("ID: %d, Name: %s,  BinSize: %d, ExecutionDate: %s", ntd.ID, ntd.Name, ntd.BinSize, ntd.ExecutionDate.Format("01.02.06"))
-}
-
+// String renders a TrashDate as a single line. The receiver is a value so fmt
+// formats slice elements with it; UnmarshalJSON above needs a pointer receiver
+// to populate the struct, hence the deliberate receiver-type mismatch.
+//
 //goland:noinspection GoMixedReceiverTypes
 func (td TrashDate) String() string {
-	return fmt.Sprintf("BmsWasteTypeId: %d, BmsWasteTypeName: %s, Deadline: %s,  EmptyingCountCycle: %d, SizeName: %s, Size: %d, Cycle: %d, EmptyingCount: %d, CycleAsText: %s", td.BmsWasteTypeId, td.BmsWasteTypeName, td.Deadline.Format("01.02.06"), td.EmptyingCountCycle, td.SizeName, td.Size, td.Cycle, td.EmptyingCount, td.CycleAsText)
+	return fmt.Sprintf("BmsWasteTypeId: %d, BmsWasteTypeName: %s, Deadline: %s, EmptyingCountCycle: %d, SizeName: %s, Size: %d, Cycle: %d, EmptyingCount: %d, CycleAsText: %s",
+		td.BmsWasteTypeId, td.BmsWasteTypeName, td.Deadline.Format("02.01.2006"), td.EmptyingCountCycle, td.SizeName, td.Size, td.Cycle, td.EmptyingCount, td.CycleAsText)
 }
 
+// HouseNumber is a house-number range as returned by GetHouseNumbers. The API
+// uses the same struct for a single number and a range; the End fields are
+// zero/empty for a single number.
 type HouseNumber struct {
 	HouseNumberStart      int
 	HouseNumberStartExtra string
-	HouseNumberEnd        string
+	HouseNumberEnd        int
 	HouseNumberEndExtra   string
 }
 
 func (hn HouseNumber) String() string {
 	str := fmt.Sprintf("%d%s", hn.HouseNumberStart, hn.HouseNumberStartExtra)
-	if hn.HouseNumberEnd != "" || hn.HouseNumberEndExtra != "" {
-		str += fmt.Sprintf("-%s%s", hn.HouseNumberEnd, hn.HouseNumberEndExtra)
+	if hn.HouseNumberEnd != 0 || hn.HouseNumberEndExtra != "" {
+		str += fmt.Sprintf("-%d%s", hn.HouseNumberEnd, hn.HouseNumberEndExtra)
 	}
 	return str
 }
