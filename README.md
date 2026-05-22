@@ -1,22 +1,12 @@
 # abfallkalender-api
 
-Go library and CLI for the insert-it.de waste-collection API
-(Müllkalender / Abfallkalender / Müllabfuhr) used by several German
-municipalities to publish their pickup schedules: **Mannheim, Hattingen,
-Herne, Kassel, Krefeld, Lübeck, Offenbach**. Zero dependencies.
+Go library and CLI for the insert-it.de Abfallkalender API used by several
+German municipalities to publish their waste-pickup schedules: **Mannheim,
+Hattingen, Herne, Kassel, Krefeld, Lübeck, Offenbach**. Zero dependencies.
 
-> [!NOTE]
-> The upstream insert-it.de API routinely breaks around the year change,
-> roughly the last week of December through the first week of January.
-> Every consumer is affected, including the official municipal apps; it is
-> not a bug in this library. Service resumes once the operator publishes the
-> new year's schedule.
-
-## supported municipalities
-
-The seven municipalities are exposed via the `Regions` map; keys match the
-city name verbatim, with one exception: Lübeck uses the ASCII spelling
-`Luebeck` as its key.
+The [`Regions` map](https://github.com/ByteSizedMarius/abfallkalender-api-dev/blob/master/const.go#L18)
+keys match these names verbatim, except Lübeck uses the ASCII spelling
+`Luebeck`.
 
 ## cli
 
@@ -61,7 +51,7 @@ $ abfallkalender -city Kassel -json pointtypes
 ]
 ```
 
-## api
+## library
 
 ```
 go get github.com/ByteSizedMarius/abfallkalender-api
@@ -93,7 +83,7 @@ func main() {
 }
 ```
 
-See `example/main.go` for a more complete demo that exercises every endpoint.
+See [`example/main.go`](https://github.com/ByteSizedMarius/abfallkalender-api-dev/blob/master/example/main.go) for a more complete demo that exercises every endpoint.
 
 ### public API
 
